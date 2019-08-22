@@ -24,17 +24,19 @@ import com.alibaba.dubbo.rpc.Invocation;
 import com.alibaba.dubbo.rpc.Invoker;
 import com.alibaba.dubbo.rpc.Result;
 import com.alibaba.dubbo.rpc.RpcContext;
-import java.lang.reflect.Method;
-import org.apache.skywalking.apm.agent.core.context.ContextCarrier;
-import org.apache.skywalking.apm.agent.core.context.tag.Tags;
+import com.google.gson.Gson;
 import org.apache.skywalking.apm.agent.core.context.CarrierItem;
+import org.apache.skywalking.apm.agent.core.context.ContextCarrier;
 import org.apache.skywalking.apm.agent.core.context.ContextManager;
+import org.apache.skywalking.apm.agent.core.context.tag.Tags;
 import org.apache.skywalking.apm.agent.core.context.trace.AbstractSpan;
 import org.apache.skywalking.apm.agent.core.context.trace.SpanLayer;
 import org.apache.skywalking.apm.agent.core.plugin.interceptor.enhance.EnhancedInstance;
 import org.apache.skywalking.apm.agent.core.plugin.interceptor.enhance.InstanceMethodsAroundInterceptor;
 import org.apache.skywalking.apm.agent.core.plugin.interceptor.enhance.MethodInterceptResult;
 import org.apache.skywalking.apm.network.trace.component.ComponentsDefine;
+
+import java.lang.reflect.Method;
 
 /**
  * {@link DubboInterceptor} define how to enhance class {@link com.alibaba.dubbo.monitor.support.MonitorFilter#invoke(Invoker,
@@ -53,9 +55,9 @@ public class DubboInterceptor implements InstanceMethodsAroundInterceptor {
      */
     @Override
     public void beforeMethod(EnhancedInstance objInst, Method method, Object[] allArguments,
-        Class<?>[] argumentsTypes, MethodInterceptResult result) throws Throwable {
-        Invoker invoker = (Invoker)allArguments[0];
-        Invocation invocation = (Invocation)allArguments[1];
+                             Class<?>[] argumentsTypes, MethodInterceptResult result) throws Throwable {
+        Invoker invoker = (Invoker) allArguments[0];
+        Invocation invocation = (Invocation) allArguments[1];
         RpcContext rpcContext = RpcContext.getContext();
         boolean isConsumer = rpcContext.isConsumerSide();
         URL requestURL = invoker.getUrl();
@@ -85,6 +87,11 @@ public class DubboInterceptor implements InstanceMethodsAroundInterceptor {
             span = ContextManager.createEntrySpan(generateOperationName(requestURL, invocation), contextCarrier);
         }
 
+
+        Gson gson = new Gson();
+        String args = gson.toJson(invocation.getArguments());
+        Tags.DB_STATEMENT.set(span, args);
+
         Tags.URL.set(span, generateRequestURL(requestURL, invocation));
         span.setComponent(ComponentsDefine.DUBBO);
         SpanLayer.asRPCFramework(span);
@@ -92,8 +99,8 @@ public class DubboInterceptor implements InstanceMethodsAroundInterceptor {
 
     @Override
     public Object afterMethod(EnhancedInstance objInst, Method method, Object[] allArguments,
-        Class<?>[] argumentsTypes, Object ret) throws Throwable {
-        Result result = (Result)ret;
+                              Class<?>[] argumentsTypes, Object ret) throws Throwable {
+        Result result = (Result) ret;
         if (result != null && result.getException() != null) {
             dealException(result.getException());
         }
@@ -104,7 +111,7 @@ public class DubboInterceptor implements InstanceMethodsAroundInterceptor {
 
     @Override
     public void handleMethodException(EnhancedInstance objInst, Method method, Object[] allArguments,
-        Class<?>[] argumentsTypes, Throwable t) {
+                                      Class<?>[] argumentsTypes, Throwable t) {
         dealException(t);
     }
 

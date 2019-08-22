@@ -19,22 +19,24 @@
 
 package org.apache.skywalking.apm.plugin.asf.dubbo;
 
+import com.google.gson.Gson;
 import org.apache.dubbo.common.URL;
 import org.apache.dubbo.rpc.Invocation;
 import org.apache.dubbo.rpc.Invoker;
 import org.apache.dubbo.rpc.Result;
 import org.apache.dubbo.rpc.RpcContext;
-import java.lang.reflect.Method;
-import org.apache.skywalking.apm.agent.core.context.ContextCarrier;
-import org.apache.skywalking.apm.agent.core.context.tag.Tags;
 import org.apache.skywalking.apm.agent.core.context.CarrierItem;
+import org.apache.skywalking.apm.agent.core.context.ContextCarrier;
 import org.apache.skywalking.apm.agent.core.context.ContextManager;
+import org.apache.skywalking.apm.agent.core.context.tag.Tags;
 import org.apache.skywalking.apm.agent.core.context.trace.AbstractSpan;
 import org.apache.skywalking.apm.agent.core.context.trace.SpanLayer;
 import org.apache.skywalking.apm.agent.core.plugin.interceptor.enhance.EnhancedInstance;
 import org.apache.skywalking.apm.agent.core.plugin.interceptor.enhance.InstanceMethodsAroundInterceptor;
 import org.apache.skywalking.apm.agent.core.plugin.interceptor.enhance.MethodInterceptResult;
 import org.apache.skywalking.apm.network.trace.component.ComponentsDefine;
+
+import java.lang.reflect.Method;
 
 /**
  * {@link DubboInterceptor} define how to enhance class {@link org.apache.dubbo.monitor.support.MonitorFilter#invoke(Invoker,
@@ -85,9 +87,15 @@ public class DubboInterceptor implements InstanceMethodsAroundInterceptor {
         }
 
         Tags.URL.set(span, generateRequestURL(requestURL, invocation));
+
+        Gson gson = new Gson();
+        String args = gson.toJson(invocation.getArguments());
+        Tags.DB_STATEMENT.set(span, args);
+
         span.setComponent(ComponentsDefine.DUBBO);
         SpanLayer.asRPCFramework(span);
     }
+
 
     @Override
     public Object afterMethod(EnhancedInstance objInst, Method method, Object[] allArguments,

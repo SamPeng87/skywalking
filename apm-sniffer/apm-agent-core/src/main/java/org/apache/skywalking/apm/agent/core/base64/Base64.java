@@ -17,9 +17,10 @@
  */
 package org.apache.skywalking.apm.agent.core.base64;
 
-import java.io.UnsupportedEncodingException;
 import org.apache.skywalking.apm.agent.core.logging.api.ILog;
 import org.apache.skywalking.apm.agent.core.logging.api.LogManager;
+
+import java.io.UnsupportedEncodingException;
 
 /**
  * Copied from {@code zipkin.internal.Base64}, adapted from {@code okio.Base64} as JRE 6 doesn't have a base64Url
@@ -35,7 +36,8 @@ public final class Base64 {
 
     public static String decode2UTFString(String in) {
         try {
-            return new String(decode(in), "utf-8");
+            String inReplace = in.replace("%3d","=");
+            return new String(decode(inReplace), "utf-8");
         } catch (UnsupportedEncodingException e) {
             logger.error(e, "Can't decode BASE64 text {}", in);
             return "";
@@ -140,7 +142,8 @@ public final class Base64 {
 
     public static String encode(String text) {
         try {
-            return encode(text.getBytes("utf-8"));
+            String encode = encode(text.getBytes("utf-8"));
+            return encode.replace("=","%3d");
         } catch (UnsupportedEncodingException e) {
             logger.error(e, "Can't encode {} in BASE64", text);
             return "";
