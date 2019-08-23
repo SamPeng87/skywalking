@@ -15,3 +15,5 @@
 # limitations under the License.
 
 toolkit-log4j2=org.apache.skywalking.apm.toolkit.activation.log.log4j.v2.x.Log4j2OutputAppenderActivation
+#toolkit-log4j2=org.apache.skywalking.apm.toolkit.activation.log.log4j.v2.x.mdc.Log4j2ThreadContextInstrumentation
+#toolkit-log4j2=org.apache.skywalking.apm.toolkit.activation.log.log4j.v2.x.mdc.Log4j2ThreadImmutableContextInstrumentation
