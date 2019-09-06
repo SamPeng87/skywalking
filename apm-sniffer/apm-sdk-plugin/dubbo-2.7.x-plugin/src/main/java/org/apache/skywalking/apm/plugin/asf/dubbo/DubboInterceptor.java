@@ -25,6 +25,7 @@ import org.apache.dubbo.rpc.Invocation;
 import org.apache.dubbo.rpc.Invoker;
 import org.apache.dubbo.rpc.Result;
 import org.apache.dubbo.rpc.RpcContext;
+import org.apache.logging.log4j.ThreadContext;
 import org.apache.skywalking.apm.agent.core.context.CarrierItem;
 import org.apache.skywalking.apm.agent.core.context.ContextCarrier;
 import org.apache.skywalking.apm.agent.core.context.ContextManager;
@@ -36,6 +37,7 @@ import org.apache.skywalking.apm.agent.core.plugin.interceptor.enhance.InstanceM
 import org.apache.skywalking.apm.agent.core.plugin.interceptor.enhance.MethodInterceptResult;
 import org.apache.skywalking.apm.network.trace.component.ComponentsDefine;
 
+import javax.servlet.http.HttpServletResponse;
 import java.lang.reflect.Method;
 
 /**
@@ -45,6 +47,7 @@ import java.lang.reflect.Method;
  *
  */
 public class DubboInterceptor implements InstanceMethodsAroundInterceptor {
+    private static final String SW_TRACE_ID = "SW-TraceId";
     /**
      * <h2>Consumer:</h2> The serialized trace context data will
      * inject to the {@link RpcContext#attachments} for transport to provider side.
@@ -85,7 +88,7 @@ public class DubboInterceptor implements InstanceMethodsAroundInterceptor {
 
             span = ContextManager.createEntrySpan(generateOperationName(requestURL, invocation), contextCarrier);
         }
-
+        ThreadContext.put(SW_TRACE_ID, ContextManager.getGlobalTraceId());
         Tags.URL.set(span, generateRequestURL(requestURL, invocation));
 
         Gson gson = new Gson();
@@ -104,7 +107,13 @@ public class DubboInterceptor implements InstanceMethodsAroundInterceptor {
         if (result != null && result.getException() != null) {
             dealException(result.getException());
         }
-
+        RpcContext rpcContext = RpcContext.getContext();
+        if (rpcContext != null && rpcContext.getResponse() instanceof HttpServletResponse) {
+            HttpServletResponse response = (HttpServletResponse) rpcContext.getResponse();
+            if (!response.containsHeader(SW_TRACE_ID)) {
+                response.addHeader(SW_TRACE_ID, ContextManager.getGlobalTraceId());
+            }
+        }
         ContextManager.stopSpan();
         return ret;
     }
