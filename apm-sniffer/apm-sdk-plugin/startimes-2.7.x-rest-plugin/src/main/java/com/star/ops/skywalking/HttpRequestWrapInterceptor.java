@@ -60,12 +60,27 @@ public class HttpRequestWrapInterceptor implements InstanceMethodsAroundIntercep
     @Override
     public Object afterMethod(EnhancedInstance objInst, Method method, Object[] allArguments,
                               Class<?>[] argumentsTypes, Object ret) throws Throwable {
+        Result result = (Result)ret;
+        if (result != null && result.getException() != null) {
+            dealException(result.getException());
+        }
+        ContextManager.stopSpan();
         return ret;
     }
 
     @Override
     public void handleMethodException(EnhancedInstance objInst, Method method, Object[] allArguments,
                                       Class<?>[] argumentsTypes, Throwable t) {
+        dealException(t);
+    }
+
+    /**
+     * Log the throwable, which occurs in Dubbo RPC service.
+     */
+    private void dealException(Throwable throwable) {
+        AbstractSpan span = ContextManager.activeSpan();
+        span.errorOccurred();
+        span.log(throwable);
     }
 
 }

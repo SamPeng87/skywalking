@@ -48,6 +48,7 @@ import java.lang.reflect.Method;
  */
 public class DubboInterceptor implements InstanceMethodsAroundInterceptor {
     private static final String SW_TRACE_ID = "SW-TraceId";
+
     /**
      * <h2>Consumer:</h2> The serialized trace context data will
      * inject to the {@link RpcContext#attachments} for transport to provider side.
@@ -91,9 +92,12 @@ public class DubboInterceptor implements InstanceMethodsAroundInterceptor {
         ThreadContext.put(SW_TRACE_ID, ContextManager.getGlobalTraceId());
         Tags.URL.set(span, generateRequestURL(requestURL, invocation));
 
-        Gson gson = new Gson();
-        String args = gson.toJson(invocation.getArguments());
-        Tags.DB_STATEMENT.set(span, args);
+        try {
+            Gson gson = new Gson();
+            String args = gson.toJson(invocation.getArguments());
+            Tags.DB_STATEMENT.set(span, args);
+        } catch (Exception e) {
+        }
 
         span.setComponent(ComponentsDefine.DUBBO);
         SpanLayer.asRPCFramework(span);
